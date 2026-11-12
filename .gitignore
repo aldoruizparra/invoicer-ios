@@ -1,0 +1,10 @@
+.DS_Store
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+*.xcuserstate
+# Real work-log emails and client templates contain names and addresses.
+*.eml
+*.xlsx
+!InvoicerKit/Tests/InvoicerKitTests/Fixtures/weekly_template.xlsx
