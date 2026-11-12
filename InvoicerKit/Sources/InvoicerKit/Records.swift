@@ -1,7 +1,7 @@
 import Foundation
 
 /// Plain value types shared by the app (SwiftData models convert to/from these)
-/// and the renderers. Field names follow the CLI's data.json.
+/// and the renderers. Field names follow the terminal app's.
 
 public struct Sender: Equatable, Codable, Sendable {
     public var name = ""

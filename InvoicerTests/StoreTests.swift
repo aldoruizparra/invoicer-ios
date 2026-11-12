@@ -111,24 +111,6 @@ struct StoreTests {
         #expect(items.first?.lastPrice == 260)
     }
 
-    @Test func importCLIData() throws {
-        var cli = CLIData()
-        cli.sender = Sender(name: "Imported Co")
-        cli.lastInvoiceNumber = 41
-        cli.contacts = [ContactInfo(attention: "John Smith", company: "Acme LLC"), ContactInfo(attention: "B")]
-        cli.jobAddresses = ["456 Oak Ave\nPlano, TX"]
-        cli.items = [LineItem(description: "Deep clean", price: 250)]
-        cli.lastInvoice = sampleInvoice(number: 41)
-        let summary = try store.importCLI(cli)
-        #expect(summary == Store.ImportSummary(contacts: 2, addresses: 1, items: 1, invoices: 1))
-        let biz = store.business()
-        #expect(biz.name == "Test Sender")          // existing profile is kept
-        #expect(biz.nextInvoiceNumber == 42)
-        #expect(store.repeatDraft()?.billTo.company == "Acme LLC")
-        // Importing again adds nothing.
-        #expect(try store.importCLI(cli) == Store.ImportSummary())
-    }
-
     @Test func draftValidation() {
         let draft = InvoiceDraft(business: store.business())
         #expect(draft.missing == ["Bill to", "For", "a line item"])

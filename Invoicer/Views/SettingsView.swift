@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 /// Settings: business info (= `invoice.py setup`), invoicing defaults, tools
-/// (import from the terminal app) and storage. The weekly sheet has its own tab.
+/// and storage. The weekly sheet has its own tab.
 struct SettingsView: View {
     @Bindable var business: Business
     let cloudAvailable: Bool
@@ -17,7 +17,6 @@ struct SettingsView: View {
     @State private var name = ""
     @State private var taxText = ""
     @State private var nextText = ""
-    @State private var importing = false
 
     private var taxRate: Decimal? { try? Money.parseRate(taxText) }
     private var nextNumber: Int? { try? Validate.invoiceNumber(nextText) }
@@ -46,25 +45,17 @@ struct SettingsView: View {
                                      width: 80, invalid: nextNumber == nil)
                 } header: { header("Invoicing") }
 
+                #if DEBUG
                 Section {
-                    Button { importing = true } label: {
-                        HStack(spacing: 12) {
-                            TwoLineLabel(title: "Import from the terminal app",
-                                         subtitle: "Contacts, addresses, items and invoice number from data.json")
-                            Chevron()
-                        }
-                    }
-                    .buttonStyle(RowButtonStyle(first: true)).listRowChrome()
-                    #if DEBUG
                     Button(action: showDemo) {
                         HStack(spacing: 12) {
                             TwoLineLabel(title: "Demo invoice", subtitle: "Debug: render the demo PDF from fake data")
                             Chevron()
                         }
                     }
-                    .buttonStyle(RowButtonStyle()).listRowChrome()
-                    #endif
-                } header: { header("Tools") }
+                    .buttonStyle(RowButtonStyle(first: true)).listRowChrome()
+                } header: { header("Developer") }
+                #endif
 
                 Section {
                     if FileStore.iCloudSupported {
@@ -95,16 +86,6 @@ struct SettingsView: View {
         .onChange(of: nextText) { if let nextNumber { business.lastInvoiceNumber = nextNumber - 1 } }
         .onChange(of: business.lastInvoiceNumber) { _, last in
             if nextNumber != last + 1 { nextText = String(last + 1) }
-        }
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
-            do {
-                let cli = try CLIData(json: readPickedFile(try result.get()))
-                let summary = try Store(context: context).importCLI(cli)
-                load()
-                toast.show(summary.text)
-            } catch {
-                toast.show(error.localizedDescription)
-            }
         }
     }
 

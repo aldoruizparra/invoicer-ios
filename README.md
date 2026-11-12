@@ -24,7 +24,6 @@ InvoicerKit/      Swift package, Apple frameworks only (runs `swift test` on the
   InvoicePDF       CoreGraphics/CoreText port of the CLI PDF, Helvetica Neue    (pdf.py, demo.py)
   Zip/XMLTree/XLSX no-dependency .xlsx read + in-place template fill
   WeeklyInvoice    fill the client's template + one-page PDF                     (weekly.py)
-  CLIImport        reads the CLI's ~/.invoicer/data.json
 Invoicer/         the app: SwiftData models, Store (numbering/MRU rules), screens, Industry styling
 InvoicerTests/    app-level tests (numbering, cancel, duplicates, MRU, import, weekly sheet)
 ```

@@ -7,7 +7,6 @@ import SwiftUI
 struct SetupView: View {
     let business: Business
     @Environment(\.modelContext) private var context
-    @Environment(Toast.self) private var toast
 
     @State private var name = ""
     @State private var phone = ""
@@ -16,7 +15,6 @@ struct SetupView: View {
     @State private var cityStateZip = ""
     @State private var tax = "8.25"
     @State private var firstNumber = "1"
-    @State private var importing = false
 
     private var taxValid: Bool { (try? Money.parseRate(tax)) != nil }
     private var numberValid: Bool { (try? Validate.invoiceNumber(firstNumber)) != nil }
@@ -64,20 +62,11 @@ struct SetupView: View {
                 Button("Continue", action: finish)
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(!canContinue)
-                    .plainRow(top: 34, bottom: 8, horizontal: 22)
-                Button("Import from the terminal app") { importing = true }
-                    .font(.barlow(15, FontName.medium, relativeTo: .subheadline))
-                    .foregroundStyle(Color.accentInk)
-                    .frame(maxWidth: .infinity)
-                    .plainRow(top: 12, bottom: 24)
-                    .accessibilityHint("Choose the data.json file from the Mac app's .invoicer folder")
+                    .plainRow(top: 34, bottom: 32, horizontal: 22)
             }
         }
         .industryList()
         .scrollDismissesKeyboard(.interactively)
-        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
-            importCLI(result)
-        }
     }
 
     private func finish() {
@@ -90,15 +79,5 @@ struct SetupView: View {
         business.defaultTaxRate = Money.formatRate((try? Money.parseRate(tax)) ?? 0)
         business.lastInvoiceNumber = ((try? Validate.invoiceNumber(firstNumber)) ?? 1) - 1
         try? context.save()
-    }
-
-    private func importCLI(_ result: Result<URL, Error>) {
-        do {
-            let cli = try CLIData(json: readPickedFile(try result.get()))
-            let summary = try Store(context: context).importCLI(cli)
-            toast.show(summary.text)
-        } catch {
-            toast.show(error.localizedDescription)
-        }
     }
 }
