@@ -22,15 +22,22 @@ public struct Job: Equatable, Identifiable, Sendable {
     public var amount: Decimal?
     /// The original text, for messages.
     public var source: String
+    // Columns the email doesn't have; filled when houses are typed in.
+    public var jobNumber: String
+    public var cityState: String
+    public var service: String
 
-    public init(date: Date, client: String, address: String, amount: Decimal?, source: String) {
+    public init(date: Date, client: String, address: String, amount: Decimal?, source: String,
+                jobNumber: String = "", cityState: String = "", service: String = "") {
         self.date = date; self.client = client; self.address = address
         self.amount = amount; self.source = source
+        self.jobNumber = jobNumber; self.cityState = cityState; self.service = service
     }
 
     public static func == (a: Job, b: Job) -> Bool {
         a.date == b.date && a.client == b.client && a.address == b.address
             && a.amount == b.amount && a.source == b.source
+            && a.jobNumber == b.jobNumber && a.cityState == b.cityState && a.service == b.service
     }
 }
 

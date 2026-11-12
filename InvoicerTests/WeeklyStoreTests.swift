@@ -67,6 +67,24 @@ struct WeeklyStoreTests {
         #expect(store.lastAmount(client: "Nobody", address: "") == nil)
     }
 
+    @Test func typedDetailsReachTheLogAndSuggestions() {
+        let sheet = store.currentSheet()
+        store.addJob(to: sheet, date: sheet.start, client: "Acme Homes", address: "100 First St", amount: 65,
+                     jobNumber: " 4521 ", cityState: "Springfield, TX", service: "Move-out clean")
+        store.addJob(to: sheet, date: sheet.start, client: "Acme Homes", address: "200 Second", amount: 70)
+        let log = store.log(for: sheet)
+        #expect(log.jobs[0].jobNumber == "4521")
+        #expect(log.jobs[0].cityState == "Springfield, TX")
+        #expect(log.jobs[0].service == "Move-out clean")
+        #expect(log.jobs[1].service == "")
+        #expect(store.recentServices() == ["Move-out clean"])
+        // Same house: its own details. New house for the client: the client's latest.
+        #expect(store.lastDetails(client: "acme homes", address: "100 first st") == ("Springfield, TX", "Move-out clean"))
+        #expect(store.lastDetails(client: "Acme Homes", address: "300 New Rd") == ("Springfield, TX", "Move-out clean"))
+        #expect(store.lastDetails(client: "Nobody", address: "") == ("", ""))
+        #expect(store.jobs(in: sheet)[0].detail == "100 First St · Springfield, TX · Move-out clean · Job #4521")
+    }
+
     @Test func pasteFillsAnEmptyWeekWithTheEmailsDates() throws {
         let sheet = store.currentSheet()
         let log = try WeeklyStore.parse(pasted, for: sheet)

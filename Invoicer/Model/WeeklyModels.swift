@@ -52,14 +52,28 @@ final class WorkJob {
     var amountCents = 0
     var hasAmount = false
     var createdAt = Date()
+    // The template's other job columns (optional).
+    var jobNumber = ""
+    var cityState = ""
+    var service = ""
 
-    init(sheetID: String, date: Date, client: String, address: String, amount: Decimal?, createdAt: Date = Date()) {
+    init(sheetID: String, date: Date, client: String, address: String, amount: Decimal?, createdAt: Date = Date(),
+         jobNumber: String = "", cityState: String = "", service: String = "") {
         self.sheetID = sheetID
         self.date = Dates.day(date)
         self.client = client
         self.address = address
         self.amount = amount
         self.createdAt = createdAt
+        self.jobNumber = jobNumber
+        self.cityState = cityState
+        self.service = service
+    }
+
+    /// "17321 Example Path · Springfield, TX · Move-out clean · Job #4521", blanks skipped.
+    var detail: String {
+        [address, cityState, service, jobNumber.isEmpty ? "" : "Job #\(jobNumber)"]
+            .filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
     var amount: Decimal? {
@@ -130,8 +144,10 @@ struct WeeklyStore {
     }
 
     @discardableResult
-    func addJob(to sheet: WeekSheet, date: Date, client: String, address: String, amount: Decimal?) -> WorkJob {
-        let job = WorkJob(sheetID: sheet.sheetID, date: date, client: clean(client), address: clean(address), amount: amount)
+    func addJob(to sheet: WeekSheet, date: Date, client: String, address: String, amount: Decimal?,
+                jobNumber: String = "", cityState: String = "", service: String = "") -> WorkJob {
+        let job = WorkJob(sheetID: sheet.sheetID, date: date, client: clean(client), address: clean(address), amount: amount,
+                          jobNumber: clean(jobNumber), cityState: clean(cityState), service: clean(service))
         context.insert(job)
         try? context.save()
         return job
@@ -143,7 +159,7 @@ struct WeeklyStore {
         try? context.save()
     }
 
-    private func clean(_ s: String) -> String { s.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
+    func clean(_ s: String) -> String { s.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
 
     // MARK: suggestions (most recent first, across all weeks)
 
@@ -160,6 +176,21 @@ struct WeeklyStore {
     func addresses(for client: String, limit: Int = 8) -> [String] {
         let key = Strings.norm(client)
         return unique(allJobs().filter { Strings.norm($0.client) == key }.map(\.address), limit: limit)
+    }
+
+    /// Services used before, most recent first.
+    func recentServices(limit: Int = 6) -> [String] {
+        unique(allJobs().map(\.service), limit: limit)
+    }
+
+    /// City/state and service last used at this house (else for this client).
+    func lastDetails(client: String, address: String) -> (cityState: String, service: String) {
+        let c = Strings.norm(client), a = Strings.norm(address)
+        let jobs = allJobs().filter { Strings.norm($0.client) == c }
+        let house = jobs.filter { Strings.norm($0.address) == a }
+        let city = (house.first { !$0.cityState.isEmpty } ?? jobs.first { !$0.cityState.isEmpty })?.cityState ?? ""
+        let service = (house.first { !$0.service.isEmpty } ?? jobs.first { !$0.service.isEmpty })?.service ?? ""
+        return (city, service)
     }
 
     /// Last amount for this house, else for this client.
@@ -253,7 +284,8 @@ struct WeeklyStore {
         log.periodEnd = sheet.end
         log.jobs = jobs(in: sheet).map {
             Job(date: $0.date, client: $0.client, address: $0.address, amount: $0.amount,
-                source: "\(Dates.mdy($0.date)) \($0.client) \($0.address)")
+                source: "\(Dates.mdy($0.date)) \($0.client) \($0.address)",
+                jobNumber: $0.jobNumber, cityState: $0.cityState, service: $0.service)
         }
         return log
     }

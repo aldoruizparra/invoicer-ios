@@ -74,7 +74,9 @@ enum DebugLaunch {
         ]
         for (i, j) in jobs.enumerated() {
             context.insert(WorkJob(sheetID: sheet.sheetID, date: Dates.make(2026, 10, j.0)!, client: j.1, address: j.2,
-                                   amount: j.3, createdAt: now.addingTimeInterval(Double(i))))
+                                   amount: j.3, createdAt: now.addingTimeInterval(Double(i)),
+                                   jobNumber: i % 2 == 0 ? String(4500 + i) : "", cityState: "Springfield, TX",
+                                   service: i == 4 ? "Deep clean" : "Standard clean"))
         }
         try? context.save()
     }

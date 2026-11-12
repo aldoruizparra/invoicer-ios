@@ -211,7 +211,7 @@ struct WeeklyHomeView: View {
     private func jobRow(_ job: WorkJob, first: Bool) -> some View {
         Button { editing = .edit(job) } label: {
             HStack(spacing: 12) {
-                TwoLineLabel(title: job.client.isEmpty ? "(no client)" : job.client, subtitle: job.address)
+                TwoLineLabel(title: job.client.isEmpty ? "(no client)" : job.client, subtitle: job.detail)
                 if let amount = job.amount {
                     Text(Money.format(amount)).monospacedDigit()
                 } else {
@@ -224,7 +224,7 @@ struct WeeklyHomeView: View {
         .swipeActions {
             Button("Delete", role: .destructive) { context.delete(job); try? context.save() }
         }
-        .accessibilityLabel("\(job.client), \(job.address), \(job.amount.map(Money.format) ?? "no amount")")
+        .accessibilityLabel("\(job.client), \(job.detail), \(job.amount.map(Money.format) ?? "no amount")")
         .accessibilityHint("Edit")
     }
 

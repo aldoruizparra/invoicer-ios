@@ -11,8 +11,10 @@ public enum WeeklyInvoice {
     }
     static let periodStartCell = "E10", periodEndCell = "E11"
     static let firstRow = 17, lastRow = 100
-    // Job columns; Job #, City/State and Service aren't in the email and stay blank.
-    static let colClient = "A", colAddress = "C", colDate = "E", colAmount = "G"
+    // Job columns: Client · Job # · Address · City, State · Date · Service · Amount.
+    // Job #, City/State and Service aren't in the email; they're filled when typed in.
+    static let colClient = "A", colJobNumber = "B", colAddress = "C", colCityState = "D"
+    static let colDate = "E", colService = "F", colAmount = "G"
     public static var capacity: Int { lastRow - firstRow + 1 }
 
     /// Check a template before saving it: must open as a workbook.
@@ -34,12 +36,27 @@ public enum WeeklyInvoice {
         for (offset, job) in log.jobs.enumerated() {
             let row = firstRow + offset
             wb.set("\(colClient)\(row)", job.client.isEmpty ? nil : .string(job.client))
+            wb.set("\(colJobNumber)\(row)", jobNumberValue(job.jobNumber))
             wb.set("\(colAddress)\(row)", job.address.isEmpty ? nil : .string(job.address))
+            wb.set("\(colCityState)\(row)", job.cityState.isEmpty ? nil : .string(job.cityState))
+            wb.set("\(colService)\(row)", job.service.isEmpty ? nil : .string(job.service))
             wb.set("\(colDate)\(row)", .date(job.date))
             wb.set("\(colAmount)\(row)", job.amount.map { .number($0) })
         }
         wb.setPrintArea("A1:G\(lastRow + 1)")
         return wb.serialized()
+    }
+
+    /// Plain whole numbers go in as numbers (no "number stored as text" warning in
+    /// Excel); anything else, including leading zeros, stays text.
+    static func jobNumberValue(_ text: String) -> XLSXWorkbook.Value? {
+        let t = text.trimmingCharacters(in: .whitespaces)
+        if t.isEmpty { return nil }
+        if t.allSatisfy({ $0.isASCII && $0.isNumber }), !t.hasPrefix("0") || t == "0", t.count <= 15,
+           let n = Decimal(string: t) {
+            return .number(n)
+        }
+        return .string(t)
     }
 
     // PDF colors taken from the template's theme.

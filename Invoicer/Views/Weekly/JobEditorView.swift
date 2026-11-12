@@ -2,9 +2,11 @@ import InvoicerKit
 import SwiftData
 import SwiftUI
 
-/// Add or edit one house: pick the day, the client, the address and the amount.
-/// Recent clients, that client's addresses and the last price are one tap away,
-/// and "Save & add another" keeps the day and client for the next house.
+/// Add or edit one house, in the order of the client's sheet: day, client, Job #,
+/// address, city/state, service, amount (everything but the client or address is
+/// optional). Recent clients, that client's addresses (with their city, service and
+/// last price) and recent services are one tap away. "Save & add another" keeps the
+/// day, client, city and service for the next house.
 struct JobEditorView: View {
     let sheet: WeekSheet
     let target: WeeklyHomeView.JobTarget
@@ -14,12 +16,15 @@ struct JobEditorView: View {
     @State private var day = Date()
     @State private var client = ""
     @State private var address = ""
+    @State private var jobNumber = ""
+    @State private var cityState = ""
+    @State private var service = ""
     @State private var amountText = ""
     @State private var added: [String] = []
     @State private var confirmDelete = false
     @FocusState private var focus: Field?
 
-    enum Field { case client, address, amount }
+    enum Field { case client, jobNumber, address, cityState, service, amount }
 
     private var store: WeeklyStore { WeeklyStore(context: context) }
     private var editingJob: WorkJob? { if case .edit(let j) = target { j } else { nil } }
@@ -43,6 +48,12 @@ struct JobEditorView: View {
         return Array(list.prefix(6))
     }
     private var lastAmount: Decimal? { store.lastAmount(client: client, address: address) }
+    private var serviceSuggestions: [String] {
+        let q = service.trimmingCharacters(in: .whitespaces)
+        let all = store.recentServices(limit: 10)
+        let list = q.isEmpty ? all : all.filter { $0.localizedCaseInsensitiveContains(q) && Strings.norm($0) != Strings.norm(q) }
+        return Array(list.prefix(5))
+    }
 
     var body: some View {
         List {
@@ -80,9 +91,23 @@ struct JobEditorView: View {
                     .focused($focus, equals: .client)
                     .textInputAutocapitalization(.words)
                     .submitLabel(.next)
-                    .onSubmit { focus = .address }
+                    .onSubmit { focus = .jobNumber }
                     .accessibilityLabel("Client")
                     .hairlineCell(first: true)
+                HStack {
+                    Text("Job #")
+                    TextField("Optional", text: $jobNumber)
+                        .focused($focus, equals: .jobNumber)
+                        .multilineTextAlignment(.trailing)
+                        .keyboardType(.numbersAndPunctuation)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.characters)
+                        .submitLabel(.next)
+                        .onSubmit { focus = .address }
+                        .foregroundStyle(Color.inkSecondary)
+                        .accessibilityLabel("Job number, optional")
+                }
+                .hairlineCell()
                 if !clientSuggestions.isEmpty {
                     SuggestionChips(values: clientSuggestions) { value in
                         client = value
@@ -97,18 +122,48 @@ struct JobEditorView: View {
                     .focused($focus, equals: .address)
                     .textInputAutocapitalization(.words)
                     .submitLabel(.next)
-                    .onSubmit { fillAmountIfEmpty(); focus = .amount }
+                    .onSubmit { fillFromHistory(); focus = .cityState }
                     .accessibilityLabel("House address")
                     .hairlineCell(first: true)
+                HStack {
+                    Text("City, State")
+                    TextField("Optional", text: $cityState)
+                        .focused($focus, equals: .cityState)
+                        .multilineTextAlignment(.trailing)
+                        .textContentType(.addressCityAndState)
+                        .textInputAutocapitalization(.words)
+                        .submitLabel(.next)
+                        .onSubmit { focus = .service }
+                        .foregroundStyle(Color.inkSecondary)
+                        .accessibilityLabel("City and state, optional")
+                }
+                .hairlineCell()
                 if !addressSuggestions.isEmpty {
                     SuggestionChips(values: addressSuggestions) { value in
                         address = value
-                        fillAmountIfEmpty()
+                        fillFromHistory()
                         focus = .amount
                     }
                     .plainRow(top: 10)
                 }
-            } header: { header("House address") }
+            } header: { header("House") }
+
+            Section {
+                TextField("Optional, e.g. Move-out clean", text: $service)
+                    .focused($focus, equals: .service)
+                    .textInputAutocapitalization(.sentences)
+                    .submitLabel(.next)
+                    .onSubmit { focus = .amount }
+                    .accessibilityLabel("Service, optional")
+                    .hairlineCell(first: true)
+                if !serviceSuggestions.isEmpty {
+                    SuggestionChips(values: serviceSuggestions) { value in
+                        service = value
+                        focus = .amount
+                    }
+                    .plainRow(top: 10)
+                }
+            } header: { header("Service") }
 
             Section {
                 HStack(spacing: 4) {
@@ -192,6 +247,7 @@ struct JobEditorView: View {
         switch target {
         case .edit(let job):
             day = job.date; client = job.client; address = job.address
+            jobNumber = job.jobNumber; cityState = job.cityState; service = job.service
             amountText = job.amount.map(Money.plain) ?? ""
         case .new(let preset):
             if let preset {
@@ -206,8 +262,12 @@ struct JobEditorView: View {
         }
     }
 
-    private func fillAmountIfEmpty() {
+    /// After picking or typing an address: fill what's blank from the last visit.
+    private func fillFromHistory() {
         if amountText.isEmpty, let lastAmount { amountText = Money.plain(lastAmount) }
+        let last = store.lastDetails(client: client, address: address)
+        if cityState.isEmpty { cityState = last.cityState }
+        if service.isEmpty { service = last.service }
     }
 
     private func save(another: Bool) {
@@ -217,17 +277,24 @@ struct JobEditorView: View {
             job.date = Dates.day(day)
             job.client = client.trimmingCharacters(in: .whitespaces)
             job.address = address.trimmingCharacters(in: .whitespaces)
+            job.jobNumber = store.clean(jobNumber)
+            job.cityState = store.clean(cityState)
+            job.service = store.clean(service)
             job.amount = value
             try? context.save()
             dismiss()
             return
         }
-        store.addJob(to: sheet, date: day, client: client, address: address, amount: value)
+        store.addJob(to: sheet, date: day, client: client, address: address, amount: value,
+                     jobNumber: jobNumber, cityState: cityState, service: service)
         if another {
+            // Keep day, client, city and service; the next house usually shares them.
             added.append(address.isEmpty ? client : address)
+            let usedJobNumbers = !jobNumber.trimmingCharacters(in: .whitespaces).isEmpty
             address = ""
+            jobNumber = ""
             amountText = ""
-            focus = .address
+            focus = usedJobNumbers ? .jobNumber : .address
         } else {
             dismiss()
         }
