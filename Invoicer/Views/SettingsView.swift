@@ -67,9 +67,11 @@ struct SettingsView: View {
                 } header: { header("Tools") }
 
                 Section {
-                    Toggle("iCloud sync", isOn: $syncEnabled)
-                        .toggleStyle(SquareToggleStyle())
-                        .hairlineCell(first: true)
+                    if FileStore.iCloudSupported {
+                        Toggle("iCloud sync", isOn: $syncEnabled)
+                            .toggleStyle(SquareToggleStyle())
+                            .hairlineCell(first: true)
+                    }
                     Footnote(storageNote)
                         .padding(.bottom, 24)
                 } header: { header("Storage") }
@@ -107,6 +109,9 @@ struct SettingsView: View {
     }
 
     private var storageNote: String {
+        if !FileStore.iCloudSupported {
+            return "Everything is saved on this iPhone. PDFs and spreadsheets are in Files › On My iPhone › Invoicer. Deleting the app deletes its data, so share or save anything you need to keep."
+        }
         if !syncEnabled { return "Everything stays on this iPhone only. PDFs are kept in Files › On My iPhone › Invoicer." }
         if !cloudAvailable || (files.resolvedICloud && files.iCloudDocuments == nil) {
             return "iCloud isn't available right now (sign in to iCloud in the Settings app). Everything is saved on this iPhone until it is."

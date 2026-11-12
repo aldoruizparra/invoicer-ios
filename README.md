@@ -44,6 +44,24 @@ filled weekly .xlsx/.pdf for a visual check.
 Debug launch arguments (in-memory fake data, never touches real data):
 `-demoData YES`, `-demoSetup YES`, `-openScreen newInvoice|review|contacts|item|saved|settings|weekly|addHouse|editHouse|paste|preview|demo`.
 
+## Install on someone's iPhone with a free Apple ID
+
+No paid developer account needed. The **Invoicer (Free Apple ID)** scheme builds without
+iCloud and push notifications (free accounts can't sign those); everything is saved on the
+phone, and PDFs/spreadsheets appear in Files › On My iPhone › Invoicer.
+
+1. Plug the iPhone into the Mac, tap **Trust** on the phone.
+2. Xcode › Settings › Accounts › **+** › Apple ID (yours; the phone keeps its own Apple ID).
+3. Pick the **Invoicer (Free Apple ID)** scheme, select the project › Invoicer target ›
+   Signing & Capabilities › Team: *your name (Personal Team)*. If the bundle ID is taken,
+   change it to something unique, e.g. `com.yourname.Invoicer`.
+4. Choose the iPhone as the destination and press ⌘R.
+5. On the phone: Settings › Privacy & Security › **Developer Mode** on (restart), then
+   Settings › General › VPN & Device Management › trust your developer certificate.
+
+Free-account installs expire after 7 days: reconnect and press ⌘R again (data is kept).
+Window › Devices and Simulators › *Connect via network* lets you do this over Wi-Fi.
+
 ## Before shipping to a device
 
 - Set your **Development Team** in Signing & Capabilities. The iCloud container is

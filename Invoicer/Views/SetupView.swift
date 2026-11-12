@@ -30,7 +30,9 @@ struct SetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Invoicer · Setup").kickerStyle()
                     Text("Your details").largeTitleStyle().accessibilityAddTraits(.isHeader)
-                    Text("These appear at the top of every invoice. Stored on this iPhone and synced to your iCloud.")
+                    Text(FileStore.iCloudSupported
+                         ? "These appear at the top of every invoice. Stored on this iPhone and synced to your iCloud."
+                         : "These appear at the top of every invoice. Stored on this iPhone.")
                         .foregroundStyle(Color.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

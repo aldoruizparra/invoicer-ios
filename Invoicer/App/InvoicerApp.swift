@@ -25,7 +25,7 @@ struct InvoicerApp: App {
                 .font(.barlow())
                 .toastOverlay(toast)
                 .task { await files.resolveICloud() }
-                .onChange(of: syncEnabled) { _, on in files.syncEnabled = on }
+                .onChange(of: syncEnabled) { _, on in files.syncEnabled = on && FileStore.iCloudSupported }
                 .onOpenURL { url in router.open(url) }
         }
     }
@@ -66,7 +66,7 @@ struct ContainerHolder {
         #endif
         let schema = Schema(Schema1.models)
         try? FileManager.default.createDirectory(at: URL.applicationSupportDirectory, withIntermediateDirectories: true)
-        if sync {
+        if sync && FileStore.iCloudSupported {
             let config = ModelConfiguration("Invoicer", schema: schema, url: storeURL,
                                             cloudKitDatabase: .private(FileStore.containerID))
             if let container = try? ModelContainer(for: schema, configurations: config) {

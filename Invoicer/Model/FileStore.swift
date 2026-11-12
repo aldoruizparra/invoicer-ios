@@ -10,6 +10,14 @@ import Observation
 final class FileStore {
     static let containerID = "iCloud.com.aldoruizparra.Invoicer"
 
+    /// False in the "Invoicer (Free Apple ID)" build: free accounts can't sign
+    /// iCloud, so that build keeps everything on the phone.
+    #if NO_ICLOUD
+    static let iCloudSupported = false
+    #else
+    static let iCloudSupported = true
+    #endif
+
     var syncEnabled: Bool
     /// The ubiquity container's Documents folder, once resolved (nil = unavailable).
     private(set) var iCloudDocuments: URL?
@@ -17,12 +25,13 @@ final class FileStore {
     private let localRoot: URL
 
     init(syncEnabled: Bool, localRoot: URL = URL.documentsDirectory) {
-        self.syncEnabled = syncEnabled
+        self.syncEnabled = syncEnabled && FileStore.iCloudSupported
         self.localRoot = localRoot
     }
 
     /// Look up the iCloud container off the main thread (it can block).
     func resolveICloud() async {
+        guard FileStore.iCloudSupported else { resolvedICloud = true; return }
         let id = FileStore.containerID
         let url = await Task.detached { () -> URL? in
             guard let container = FileManager.default.url(forUbiquityContainerIdentifier: id) else { return nil }
